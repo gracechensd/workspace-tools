@@ -1,13 +1,13 @@
 import os
-import pytest
 
+import pytest
 from bumper.utils import PyPI
 from mock import Mock
+from test_stubs import temp_dir, temp_git_repo, temp_remote_git_repo
 from utils.process import run
 
 from workspace.config import config
 from workspace.scm import stat_repo, all_branches, commit_logs
-from test_stubs import temp_dir, temp_git_repo, temp_remote_git_repo
 
 
 @pytest.mark.parametrize('command,exception', [('diff', None), ('log', SystemExit), ('status', None)])
@@ -57,6 +57,10 @@ def test_bump(wst, monkeypatch):
             assert '# Comment for localconfig\nlocalconfig==%s\n# Comment for requests\nrequests<0.1\n' % version == requirements
 
 
+def assert_list_equals_without_Order(list1, list2):
+    return len(list1) == len(list2) and sorted(list1)
+
+
 def test_cleanrun(wst):
     config.clean.remove_products_older_than_days = 30
 
@@ -71,13 +75,13 @@ def test_cleanrun(wst):
         run('ls -l')
         wst('clean')
 
-        assert os.listdir() == ['old_repo_dirty', 'repo', 'file']
+        assert_list_equals_without_Order(os.listdir(), ['old_repo_dirty', 'repo', 'file'])
 
     with temp_git_repo():
         run('touch hello.py hello.pyc')
         wst('clean')
 
-        assert os.listdir() == ['.git', 'hello.py']
+        assert_list_equals_without_Order(os.listdir(), ['.git', 'hello.py'])
 
 
 def test_commit(wst):
@@ -85,43 +89,43 @@ def test_commit(wst):
         with pytest.raises(SystemExit):
             wst('commit')
 
-    with temp_git_repo():
-        with pytest.raises(SystemExit):
-            wst('commit "no files to commit"')
+    with temp_git_repo(): test_cleanrun
+    with pytest.raises(SystemExit):
+        wst('commit "no files to commit"')
 
-        with open('new_file', 'w') as fp:
-            fp.write('Hello World')
-        assert 'new_file' in stat_repo(return_output=True)
+    with open('new_file', 'w') as fp:
+        fp.write('Hello World')
+    assert 'new_file' in stat_repo(return_output=True)
 
-        wst('commit "Add new file" --branch master')
+    wst('commit "Add new file" --branch master')
 
-        assert 'working tree clean' in stat_repo(return_output=True)
-        assert 'Hello World' == open('new_file').read()
+    assert 'working tree clean' in stat_repo(return_output=True)
+    assert 'Hello World' == open('new_file').read()
 
-        with open('new_file', 'w') as fp:
-            fp.write('New World')
+    with open('new_file', 'w') as fp:
+        fp.write('New World')
 
-        wst('commit "Update file"')
+    wst('commit "Update file"')
 
-        assert ['update-file@master', 'master'] == all_branches()
+    assert ['update-file@master', 'master'] == all_branches()
 
-        wst('commit --move release')
+    wst('commit --move release')
 
-        assert ['update-file@master', 'master', 'release'] == all_branches()
+    assert ['update-file@master', 'master', 'release'] == all_branches()
 
-        wst('commit --discard')
+    wst('commit --discard')
 
-        assert ['master', 'release'] == all_branches()
+    assert ['master', 'release'] == all_branches()
 
-        wst('checkout release')
+    wst('checkout release')
 
-        wst('commit --discard')
+    wst('commit --discard')
 
-        assert ['release', 'master'] == all_branches()
+    assert ['release', 'master'] == all_branches()
 
-        logs = commit_logs()
-        assert 'new file' in logs
-        assert 1 == len(list(filter(None, logs.split('commit'))))
+    logs = commit_logs()
+    assert 'new file' in logs
+    assert 1 == len(list(filter(None, logs.split('commit'))))
 
 
 def test_test(wst, monkeypatch):
