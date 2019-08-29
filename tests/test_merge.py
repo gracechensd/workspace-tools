@@ -67,7 +67,7 @@ def test_merge_branch_with_whitelist(wst, capsys):
         wst('merge 3.0.x --whitelist-commit-text-for-ours skip')
 
         changes = run('git log --oneline', return_output=True)
-        log.info("---viks changes:{}".format(changes))
+        log.info("---viks changes:  {}".format(changes))
         # Should have skipped adding new log entry as the new-commit
         # because the commit message has 'skip' in the message
         assert 'new-commit' not in changes
