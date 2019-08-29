@@ -134,7 +134,7 @@ class Merge(AbstractCommand):
                                     click.echo('  {}'.format(commit))
                                     raise NotAllowedCommit(commit)
 
-                    self.merge_commits(commits, self.whitelist_commit_text_for_ours)
+                    self.merge_commits(last, commits, self.whitelist_commit_text_for_ours)
 
                     if self.validation:
                         process_run(self.validation)
@@ -148,13 +148,20 @@ class Merge(AbstractCommand):
                 'Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
             sys.exit(1)
 
-    def merge_commits(self, unmerged_commits, whitelist_for_ours_strategy):
+    def merge_commits(self, branch_name, unmerged_commits, whitelist_for_ours_strategy):
+        log.info("---viks whiteliststrategy:{}".format(whitelist_for_ours_strategy))
+        if whitelist_for_ours_strategy is None:
+            merge_branch(branch_name, strategy=self.strategy)
+            return
         # For each commit, inspect the message and accordingly run the merge strategy
         for unmerged_commit in unmerged_commits.split('\n'):
+            log.info("---viks --- commit:{}".format(unmerged_commit))
             if self.should_use_ours_strategy(unmerged_commit, whitelist_for_ours_strategy):
-                merge_branch(self.branch, unmerged_commit, strategy="ours")
+                commit_hash = unmerged_commit.split()[0]
+
+                merge_branch(branch_name, commit=commit_hash, strategy="ours")
             else:
-                merge_branch(self.branch, unmerged_commit, strategy=self.strategy)
+                merge_branch(branch_name, commit=commit_hash, strategy=self.strategy)
 
     def should_use_ours_strategy(self, commit_message, whitelist_for_ours_strategy):
         for ours_commit_whitelist in whitelist_for_ours_strategy:
