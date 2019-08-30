@@ -1,9 +1,9 @@
+from os import path
+
 from test_stubs import temp_git_repo
 from utils.process import run
-import logging
-
 from workspace.config import config
-log = logging.getLogger(__name__)
+
 
 def test_merge_downstream(wst, capsys):
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
@@ -60,17 +60,19 @@ def test_merge_branch_with_whitelist(wst, capsys):
         run('git commit --allow-empty -m dummy-commit')
 
         run('git checkout -b 3.0.x')
-        run('git commit --allow-empty -m skip-new-commit')
+        run('touch temp.xml')
+        run('git add -A')
+        run('git commit -m skip-new-commit')
 
         run('git checkout master')
 
         wst('merge 3.0.x --whitelist-commit-text-for-ours skip')
 
         changes = run('git log --oneline', return_output=True)
-        log.info("---viks changes:  {}".format(changes))
-        # Should have skipped adding new log entry as the new-commit
-        # because the commit message has 'skip' in the message
-        assert 'new-commit' not in changes
+        # Change should have been in the log entry
+        # but the committed file should not be in the repo.
+        assert 'skip-new-commit' in changes
+        assert path.exists('temp.xml') == False
 
     out, _ = capsys.readouterr()
     assert out.split('\n')[0] == 'Merging 3.0.x into master'
