@@ -154,7 +154,7 @@ class Merge(AbstractCommand):
             merge_branch(branch_name, strategy=self.strategy)
             return
         # For each commit, inspect the message and accordingly run the merge strategy
-        for unmerged_commit in unmerged_commits.split('\n'):
+        for unmerged_commit in reversed(unmerged_commits).split('\n'):
             log.info("---viks --- commit:{}".format(unmerged_commit))
             if self.should_use_ours_strategy(unmerged_commit, whitelist_for_ours_strategy):
                 commit_hash = unmerged_commit.split()[0]
