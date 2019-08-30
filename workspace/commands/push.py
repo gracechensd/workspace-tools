@@ -1,13 +1,12 @@
 from __future__ import absolute_import
+
 import logging
 import sys
 
 import click
-
 from workspace.commands import AbstractCommand
 from workspace.scm import (checkout_branch, remove_branch, current_branch, all_remotes,
                            push_repo, merge_branch, update_branch, parent_branch, default_remote)
-
 
 log = logging.getLogger(__name__)
 
@@ -21,14 +20,15 @@ class Push(AbstractCommand):
       :param bool merge: Merge the branch into its parent branch before push
       :param bool force: Force the push
     """
+
     @classmethod
     def arguments(cls):
         _, docs = cls.docs()
         return [
-          cls.make_args('branch', nargs='?', help=docs['branch']),
-          cls.make_args('-a', '--all-remotes', action='store_true', help=docs['all_remotes']),
-          cls.make_args('-m', '--merge', action='store_true', help=docs['merge']),
-          cls.make_args('-f', '--force', action='store_true', help=docs['force'])
+            cls.make_args('branch', nargs='?', help=docs['branch']),
+            cls.make_args('-a', '--all-remotes', action='store_true', help=docs['all_remotes']),
+            cls.make_args('-m', '--merge', action='store_true', help=docs['merge']),
+            cls.make_args('-f', '--force', action='store_true', help=docs['force'])
         ]
 
     def run(self):

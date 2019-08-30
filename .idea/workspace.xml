@@ -2,11 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2ad6273d-a746-4fea-9c36-6d6ae5e2fd36" name="Default Changelist" comment="sour">
-      <change afterPath="$PROJECT_DIR$/t.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/new_file" beforeDir="false" afterPath="$PROJECT_DIR$/new_file" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_commands.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/new_file" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_merge.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_merge.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tox.ini" beforeDir="false" afterPath="$PROJECT_DIR$/tox.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workspace/commands/clean.py" beforeDir="false" afterPath="$PROJECT_DIR$/workspace/commands/clean.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workspace/commands/commit.py" beforeDir="false" afterPath="$PROJECT_DIR$/workspace/commands/commit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workspace/commands/push.py" beforeDir="false" afterPath="$PROJECT_DIR$/workspace/commands/push.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workspace/commands/status.py" beforeDir="false" afterPath="$PROJECT_DIR$/workspace/commands/status.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workspace/commands/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/workspace/commands/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/workspace/scm.py" beforeDir="false" afterPath="$PROJECT_DIR$/workspace/scm.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

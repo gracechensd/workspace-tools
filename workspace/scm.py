@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import logging
 import os
 import re
@@ -7,14 +8,13 @@ import sys
 import click
 import requests
 from utils.process import run, silent_run
-
 from workspace.config import config
 from workspace.utils import parent_path_with_dir, parent_path_with_file, shortest_id
 
-
 log = logging.getLogger(__name__)
 
-REMOTE_BRANCH_RE = re.compile(r'^(\*)? *(\((?:HEAD detached at|no branch, rebasing) )?([^ )]+)\)? +\w+ +(?:\[(.+)/([^:\] ]+).*])?')
+REMOTE_BRANCH_RE = re.compile(
+    r'^(\*)? *(\((?:HEAD detached at|no branch, rebasing) )?([^ )]+)\)? +\w+ +(?:\[(.+)/([^:\] ]+).*])?')
 DEFAULT_REMOTE = 'origin'
 UPSTREAM_REMOTE = 'upstream'
 USER_REPO_REFERENCE_RE = re.compile('^[\w-]+/[\w-]+$')
@@ -291,9 +291,10 @@ def all_branches(repo=None, remotes=False, verbose=False):
                         # Rightful/tracking remote differs based on parent vs child branch:
                         #   Parent branch = upstream remote
                         #   Child branch = origin remote
-                        rightful_remote = (remote == up_remote and '@' not in local_branch or
-                                           remote == def_remote and '@' in local_branch)
-                        branch = local_branch if rightful_remote else '{}^{}'.format(local_branch, shortest_id(remote, remotes))
+                        rightful_remote = (remote == up_remote and '@' not in local_branch
+                                           or remote == def_remote and '@' in local_branch)
+                        branch = local_branch if rightful_remote else '{}^{}'.format(local_branch,
+                                                                                     shortest_id(remote, remotes))
 
                     elif detached:
                         branch = local_branch + '*'
@@ -352,7 +353,8 @@ def update_repo(path=None, quiet=False):
     for remote in remotes:
         if len(remotes) > 1 and not quiet:
             click.echo('    ... from ' + remote)
-        output, success = silent_run('git pull --ff-only --tags {} {}'.format(remote, branch), cwd=path, return_output=2)
+        output, success = silent_run('git pull --ff-only --tags {} {}'.format(remote, branch), cwd=path,
+                                     return_output=2)
         if not success:
             error_match = re.search(r'(?:fatal|ERROR): (.+)', output)
             error = error_match.group(1) if error_match else output

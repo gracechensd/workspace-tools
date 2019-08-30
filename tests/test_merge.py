@@ -72,8 +72,7 @@ def test_merge_branch_with_whitelist(wst, capsys):
         # Change should have been in the log entry
         # but the committed file should not be in the repo.
         assert 'skip-new-commit' in changes
-        assert path.exists('temp.xml') == False
+        assert path.exists('temp.xml') is False
 
     out, _ = capsys.readouterr()
     assert out.split('\n')[0] == 'Merging 3.0.x into master'
-

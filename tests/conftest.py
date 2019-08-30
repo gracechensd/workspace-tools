@@ -1,11 +1,12 @@
+import logging
 import shlex
 
-from mock import Mock
 import pytest
-import logging
-
+from mock import Mock
 from workspace.controller import Commander
+
 log = logging.getLogger(__name__)
+
 
 @pytest.fixture()
 def wst(monkeypatch):
@@ -13,6 +14,7 @@ def wst(monkeypatch):
         log.info("-----viks ----- cmd:{}".format(shlex.split('wst --debug ' + cmd)))
         monkeypatch.setattr('sys.argv', shlex.split('wst --debug ' + cmd))
         return Commander().run(skip_style_check=True)
+
     return _run
 
 

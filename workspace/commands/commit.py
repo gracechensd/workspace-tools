@@ -109,8 +109,8 @@ class Commit(AbstractCommand):
             branches = all_branches()
             cur_branch = branches and branches[0]
 
-            if (not (self.push or self.amend) and config.commit.commit_branch_indicator not in cur_branch and
-                    not self.branch and self.msg and config.commit.auto_branch_from_commit_words):
+            if (not (self.push or self.amend) and config.commit.commit_branch_indicator not in cur_branch
+                    and not self.branch and self.msg and config.commit.auto_branch_from_commit_words):
                 self.branch = self._branch_for_msg(self.msg,
                                                    words=config.commit.auto_branch_from_commit_words,
                                                    branches=branches)

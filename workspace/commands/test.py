@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 from __future__ import print_function
+
 import argparse
+import json
 import logging
 import os
-import pkg_resources
 import re
 import sys
 import tempfile
 
 import click
-import json
+import pkg_resources
 from utils.process import run
-
 from workspace.commands import AbstractCommand
 from workspace.commands.helpers import expand_product_groups, ToxIni
 from workspace.config import config
@@ -71,15 +71,16 @@ class Test(AbstractCommand):
     def arguments(cls):
         _, docs = cls.docs()
         return [
-          cls.make_args('env_or_file', nargs='*', help=docs['env_or_file']),
-          cls.make_args('-k', metavar='NAME_PATTERN', dest='match_test', help=docs['match_test']),
-          cls.make_args('-n', metavar='NUM_PROCESSES', type=int, dest='num_processes', help=docs['num_processes']),
-          cls.make_args('-d', '--show-dependencies', metavar='FILTER', action='store', nargs='?', help=docs['show_dependencies'],
-                        const=True),
-          cls.make_args('-t', '--test-dependents', action='store_true', help=docs['test_dependents']),
-          cls.make_args('-r', '--redevelop', action='count', help=docs['redevelop']),
-          cls.make_args('-o', action='store_true', dest='install_only', help=argparse.SUPPRESS),
-          cls.make_args('-e', '--install-editable', nargs='+', help=docs['install_editable']),
+            cls.make_args('env_or_file', nargs='*', help=docs['env_or_file']),
+            cls.make_args('-k', metavar='NAME_PATTERN', dest='match_test', help=docs['match_test']),
+            cls.make_args('-n', metavar='NUM_PROCESSES', type=int, dest='num_processes', help=docs['num_processes']),
+            cls.make_args('-d', '--show-dependencies', metavar='FILTER', action='store', nargs='?',
+                          help=docs['show_dependencies'],
+                          const=True),
+            cls.make_args('-t', '--test-dependents', action='store_true', help=docs['test_dependents']),
+            cls.make_args('-r', '--redevelop', action='count', help=docs['redevelop']),
+            cls.make_args('-o', action='store_true', dest='install_only', help=argparse.SUPPRESS),
+            cls.make_args('-e', '--install-editable', nargs='+', help=docs['install_editable']),
         ]
 
     @classmethod
@@ -162,16 +163,17 @@ class Test(AbstractCommand):
                 self.extra_args = []
 
             test_args = (
-              ('env_or_file', tuple(self.env_or_file)),
-              ('return_output', True),
-              ('num_processes', self.num_processes),
-              ('silent', True),
-              ('debug', self.debug),
-              ('extra_args', tuple(self.extra_args))
+                ('env_or_file', tuple(self.env_or_file)),
+                ('return_output', True),
+                ('num_processes', self.num_processes),
+                ('silent', True),
+                ('debug', self.debug),
+                ('extra_args', tuple(self.extra_args))
             )
 
             test_repos = [repo_path()]
-            test_repos.extend(r for r in repos(workspace_path()) if self.product_depends_on(r, name) and r not in test_repos)
+            test_repos.extend(
+                r for r in repos(workspace_path()) if self.product_depends_on(r, name) and r not in test_repos)
             test_args = [(r, test_args, self.__class__) for r in test_repos]
 
             def test_done(result):
@@ -200,7 +202,8 @@ class Test(AbstractCommand):
                 else:
                     return 'None'
 
-            repo_results = parallel_call(test_repo, test_args, callback=test_done, show_progress=show_remaining, progress_title='Remaining')
+            repo_results = parallel_call(test_repo, test_args, callback=test_done, show_progress=show_remaining,
+                                         progress_title='Remaining')
 
             for result in list(repo_results.values()):
                 if isinstance(result, tuple):
@@ -296,7 +299,8 @@ class Test(AbstractCommand):
             if self.install_only:
                 cmd.append('--notest')
 
-            output = run(cmd, cwd=self.repo, raises=not self.return_output, silent=self.silent, return_output=self.return_output)
+            output = run(cmd, cwd=self.repo, raises=not self.return_output, silent=self.silent,
+                         return_output=self.return_output)
 
             if not output:
                 if self.return_output:
@@ -333,8 +337,10 @@ class Test(AbstractCommand):
 
                 if not os.path.exists(envdir) or requirements_updated():
                     env_commands.update(
-                        self.commander.run('test', env_or_file=[env], repo=self.repo, redevelop=True, tox_cmd=self.tox_cmd,
-                                           tox_ini=self.tox_ini, tox_commands=self.tox_commands, match_test=self.match_test,
+                        self.commander.run('test', env_or_file=[env], repo=self.repo, redevelop=True,
+                                           tox_cmd=self.tox_cmd,
+                                           tox_ini=self.tox_ini, tox_commands=self.tox_commands,
+                                           match_test=self.match_test,
                                            num_processes=self.num_processes, silent=self.silent,
                                            debug=self.debug, extra_args=self.extra_args))
                     continue
@@ -353,7 +359,8 @@ class Test(AbstractCommand):
                             else:
                                 full_command += ' ' + pytest_args
                         activate = '. ' + os.path.join(envdir, 'bin', 'activate')
-                        output = run(activate + '; ' + full_command, shell=True, cwd=self.repo, raises=False, silent=self.silent,
+                        output = run(activate + '; ' + full_command, shell=True, cwd=self.repo, raises=False,
+                                     silent=self.silent,
                                      return_output=self.return_output)
                         if not output:
                             if self.return_output:
@@ -464,7 +471,9 @@ else:
         python = tox.bindir(env, 'python')
 
         if not os.path.exists(python):
-            log.error('Test environment %s is not installed. Please run without -d / --show-dependencies to install it first.', env)
+            log.error(
+                'Test environment %s is not installed. Please run without -d / --show-dependencies to install it first.',
+                env)
             sys.exit(1)
 
         return run([python, '-c', script], return_output=return_output, raises=False)
@@ -490,11 +499,11 @@ else:
             product_dependencies[dep] = path
 
         available_products = [os.path.basename(r) for r in product_repos()]
-        libs = [d for d in editable_products if d in available_products and d in product_dependencies and
-                tox.envdir(env) in product_dependencies[d]]
+        libs = [d for d in editable_products if d in available_products and d in product_dependencies
+                and tox.envdir(env) in product_dependencies[d]]
 
-        already_editable = [d for d in editable_products if d in product_dependencies and
-                            tox.envdir(env) not in product_dependencies[d]]
+        already_editable = [d for d in editable_products if d in product_dependencies
+                            and tox.envdir(env) not in product_dependencies[d]]
         for lib in already_editable:
             click.echo('{} is already installed in editable mode.'.format(lib))
 
@@ -504,7 +513,9 @@ else:
 
         not_available = [d for d in editable_products if d not in not_dependent and d not in available_products]
         for lib in not_available:
-            click.echo('{} is a dependency but not checked out in workspace, and so can not be installed in editable mode.'.format(lib))
+            click.echo(
+                '{} is a dependency but not checked out in workspace, and so can not be installed in editable mode.'.format(
+                    lib))
 
         pip = tox.bindir(env, 'pip')
 
