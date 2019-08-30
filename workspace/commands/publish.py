@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import getpass
 import logging
 import os
@@ -6,14 +7,12 @@ import re
 import sys
 
 import click
-from utils.process import run, silent_run
-
 from localconfig import LocalConfig
+from six.moves import range
+from utils.process import run, silent_run
 from workspace.commands import AbstractCommand
 from workspace.commands.helpers import ToxIni
 from workspace.scm import repo_check, repo_path, commit_logs, extract_commit_msgs
-from six.moves import range
-
 
 log = logging.getLogger(__name__)
 new_version = None  # Doesn't work if it is in bump_version
@@ -31,13 +30,14 @@ class Publish(AbstractCommand):
         :param bool minor: Perform a minor publish by bumping the minor version
         :param bool major: Perform a major publish by bumping the major version
     """
+
     @classmethod
     def arguments(cls):
         _, docs = cls.docs()
         return [
-          cls.make_args('-r', '--repo', default='pypi', help=docs['repo']),
-          cls.make_args('--minor', action='store_true', help=docs['minor']),
-          cls.make_args('--major', action='store_true', help=docs['major'])
+            cls.make_args('-r', '--repo', default='pypi', help=docs['repo']),
+            cls.make_args('--minor', action='store_true', help=docs['minor']),
+            cls.make_args('--major', action='store_true', help=docs['major'])
         ]
 
     def run(self):
@@ -126,7 +126,8 @@ class Publish(AbstractCommand):
             sys.exit(1)
 
         self.bump_version()
-        self.commander.run('commit', msg=PUBLISH_VERSION_PREFIX + new_version, push=2, files=[setup_file, changelog_file],
+        self.commander.run('commit', msg=PUBLISH_VERSION_PREFIX + new_version, push=2,
+                           files=[setup_file, changelog_file],
                            skip_style_check=True)
 
     def changes_since_last_publish(self):
@@ -208,7 +209,7 @@ class Publish(AbstractCommand):
             while len(version_parts) < i + 1:
                 version_parts.append(0)
 
-            for j in range(i+1, len(version_parts)):
+            for j in range(i + 1, len(version_parts)):
                 version_parts[j] = '0'
 
             version_parts[i] = str(int(version_parts[i]) + 1)

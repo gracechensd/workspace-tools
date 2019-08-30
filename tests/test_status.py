@@ -1,7 +1,6 @@
 import re
 
 from utils.process import run
-
 from test_stubs import temp_git_repo
 
 

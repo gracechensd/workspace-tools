@@ -41,10 +41,11 @@ Version 0.0.1
 
         python = Path('~/.virtualenvs').expanduser() / Path(cwd).name / 'bin' / 'python'
 
+        repo_path = '/private' + str(cwd)
         assert silent_run_mock.call_args_list == [
-            call('rm -rf dist/*', cwd=str(cwd), shell=True),
-            call(f'{python} setup.py sdist bdist_wheel', cwd=str(cwd)),
-            call('twine upload -r "pypi" -u "user" -p "pass" dist/*', cwd=str(cwd), shell=True, silent=2)]
+            call('rm -rf dist/*', cwd=repo_path, shell=True),
+            call(f'{python} setup.py sdist bdist_wheel', cwd=repo_path),
+            call('twine upload -r "pypi" -u "user" -p "pass" dist/*', cwd=repo_path, shell=True, silent=2)]
 
         # No changes
         with pytest.raises(SystemExit):

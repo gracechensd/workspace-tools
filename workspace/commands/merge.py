@@ -1,17 +1,16 @@
 from __future__ import absolute_import
+
 import logging
 import sys
 import textwrap
 
 import click
 import git
-
-from workspace.config import config
-from workspace.commands import AbstractCommand
-from workspace.scm import checkout_branch, current_branch, merge_branch, repo_path
-
 from utils.process import run as process_run
 
+from workspace.commands import AbstractCommand
+from workspace.config import config
+from workspace.scm import checkout_branch, current_branch, merge_branch, repo_path
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +23,6 @@ class NotAllowedCommit(Exception):
 class Merge(AbstractCommand):
     """
     Merge changes from branch to current branch
-
     :param str branch: The branch to merge from.
     :param bool downstreams: Merge current branch to downstream branches defined in config merge.branches
                              that are on the right side of the current branch value and pushes them to all remotes.
@@ -38,20 +36,21 @@ class Merge(AbstractCommand):
     :param bool quiet: Don't print merging if there are no commits to merge
     :param bool dry_run: Print out what will happen without making changes.
     :param str validation: A command to run after the merge and before a push to validate the change.
-
     """
+
     @classmethod
     def arguments(cls):
         _, docs = cls.docs()
         return [
-          cls.make_args('branch', nargs='?', help=docs['branch']),
-          cls.make_args('-d', '--downstreams', action='store_true', help=docs['downstreams']),
-          cls.make_args('--merge-branches', help=docs['merge_branches']),
-          cls.make_args('-s', '--strategy', help=docs['strategy']),
-          cls.make_args('-a', '--allow-commits', help=docs['allow_commits']),
-          cls.make_args('--quiet', action='store_true', help=docs['quiet']),
-          cls.make_args('-n', '--dry-run', action='store_true', help=docs['dry_run']),
-          cls.make_args('--validation', help=docs['validation']),
+            cls.make_args('branch', nargs='?', help=docs['branch']),
+            cls.make_args('-d', '--downstreams', action='store_true', help=docs['downstreams']),
+            cls.make_args('--merge-branches', help=docs['merge_branches']),
+            cls.make_args('-s', '--strategy', help=docs['strategy']),
+            cls.make_args('-a', '--allow-commits', help=docs['allow_commits']),
+            cls.make_args('--quiet', action='store_true', help=docs['quiet']),
+            cls.make_args('-n', '--dry-run', action='store_true', help=docs['dry_run']),
+            cls.make_args('--validation', help=docs['validation']),
+            cls.make_args('--whitelist-commit-text-for-ours', help="whitelist strategy")
         ]
 
     def run(self):
@@ -63,23 +62,23 @@ class Merge(AbstractCommand):
             sys.exit(1)
 
         if repo.is_dirty(untracked_files=True):
-            log.error('Your repo has untracked or modified files in working dir or in staging index. Please cleanup before doing merge')
+            log.error(
+                'Your repo has untracked or modified files in working dir or in staging index. Please cleanup before doing merge')
             sys.exit(1)
 
         if not self.skip_update:
-          self.commander.run('update', quiet=True)
+            self.commander.run('update', quiet=True)
 
         if self.branch:
             click.echo('Merging {} into {}'.format(self.branch, current))
 
-            if self.dry_run:
-                self.show_unmerged_commits(repo, self.branch, current)
-            else:
-                if not self.skip_update:
-                    checkout_branch(self.branch)
-                    self.commander.run('update', quiet=True)
-                    checkout_branch(current)
-                merge_branch(self.branch, strategy=self.strategy)
+            if not self.skip_update:
+                checkout_branch(self.branch)
+                self.commander.run('update', quiet=True)
+                checkout_branch(current)
+
+            all_commits = self.get_unmerged_commits(repo, self.branch, current)
+            self.merge_commits(self.branch, all_commits, self.whitelist_commit_text_for_ours)
 
         elif self.downstreams:
             if not self.merge_branches:
@@ -96,7 +95,7 @@ class Merge(AbstractCommand):
                 sys.exit(1)
 
             last = current
-            downstream_branches = branches[branches.index(last)+1:]
+            downstream_branches = branches[branches.index(last) + 1:]
 
             if not downstream_branches:
                 click.echo('You are currently on the last branch, so no downstream branches to merge.')
@@ -118,7 +117,7 @@ class Merge(AbstractCommand):
                     self.commander.run('update', quiet=True)
 
                 if self.dry_run:
-                    self.show_unmerged_commits(repo, last, branch)
+                    self.get_unmerged_commits(repo, last, branch)
 
                 else:
                     if self.allow_commits:
@@ -133,22 +132,61 @@ class Merge(AbstractCommand):
                                     click.echo('  {}'.format(commit))
                                     raise NotAllowedCommit(commit)
 
-                    merge_branch(last, strategy=self.strategy)
+                    self.merge_commits(last, commits, self.whitelist_commit_text_for_ours)
 
                     if self.validation:
-                      process_run(self.validation)
+                        process_run(self.validation)
 
                     self.commander.run('push', all_remotes=True, skip_style_check=True)
 
                 last = branch
 
         else:
-            log.error('Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
+            log.error(
+                'Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
             sys.exit(1)
 
-    def show_unmerged_commits(self, repo, from_branch, branch):
-        """ Show commit diffs between from_branch to branch """
-        commits = self._unmerged_commits(repo, from_branch, branch)
+    def merge_commits(self, branch_name, unmerged_commits_string, whitelist_for_ours_strategy):
+        """
+        Function to merge the unmerged commits. If  whitelist_for_ours_strategy is empty, it will merge using the heads
+        of the source and destination(current) branch.
+
+        If whitelist_for_ours_strategy is present, then we will inspect the list of commits for a match with the text
+        from whitelist_for_ours_strategy. If match is not found the commit will be merged with whatever strategy passed
+        to the class else if a match is found it will merge that specific commit with `ours` strategy.
+
+        :param branch_name: Name of the source branch
+        :param unmerged_commits_string: unmerged_commits separated with a \n
+        :param whitelist_for_ours_strategy: list of the commit texts to look for.
+        """
+        if not unmerged_commits_string:
+            return
+
+        if whitelist_for_ours_strategy is None:
+            merge_branch(branch_name, strategy=self.strategy)
+            return
+
+        # we should merge from the oldest commit to the newest
+        unmerged_commits_list = reversed(unmerged_commits_string.split('\n'))
+
+        # For each commit, inspect the message and accordingly run the merge strategy
+        for unmerged_commit in unmerged_commits_list:
+            if self.should_use_ours_strategy(unmerged_commit, whitelist_for_ours_strategy):
+                commit_hash = unmerged_commit.split()[0]
+
+                merge_branch(branch_name, commit=commit_hash, strategy="ours")
+            else:
+                merge_branch(branch_name, commit=commit_hash, strategy=self.strategy)
+
+    def should_use_ours_strategy(self, commit_message, whitelist_for_ours_strategy):
+        for ours_commit_whitelist in whitelist_for_ours_strategy:
+            if ours_commit_whitelist in commit_message:
+                return True
+        return False
+
+    def get_unmerged_commits(self, repo, source_branch, target_branch):
+        """ Show commit diffs between from_branch to target_branch """
+        commits = self._unmerged_commits(repo, source_branch, target_branch)
         if commits:
             click.echo('The following commit(s) would be merged:')
             click.echo(textwrap.indent(commits, '  '))
@@ -156,5 +194,5 @@ class Merge(AbstractCommand):
             click.echo('Already up-to-date.')
         return commits
 
-    def _unmerged_commits(self, repo, from_branch, branch):
-        return repo.git.log('{}..{}'.format(branch, from_branch), oneline=True)
+    def _unmerged_commits(self, repo, from_branch, target_branch):
+        return repo.git.log('{}..{}'.format(target_branch, from_branch), oneline=True)
