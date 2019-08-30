@@ -1,14 +1,13 @@
-import subprocess
-
 import logging
+import os
+
 import pytest
 from bumper.utils import PyPI
 from mock import Mock
 from test_stubs import temp_dir, temp_git_repo, temp_remote_git_repo
 from utils_core.process import run
-
 from workspace.config import config
-from workspace.scm import stat_repo, all_branches, commit_logs
+from workspace.scm import stat_repo, all_branches
 
 log = logging.getLogger(__name__)
 
@@ -87,38 +86,33 @@ def test_cleanrun(wst):
         assert_list_equals_without_Order(os.listdir(), ['.git', 'hello.py'])
 
 
-def test_commit(wst, mock_run, monkeypatch):
+def test_commit(wst):
     with temp_dir():
         with pytest.raises(SystemExit):
             wst('commit')
-
+    config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo(): test_cleanrun
     with pytest.raises(SystemExit):
         wst('commit "no files to commit"')
 
-    local_mock_scm = Mock()
-    local_mock_scm.stat_repo.return_value = ['new_file']
+    with temp_git_repo():
+        run('git checkout -b 3.0.x')
+        with open('new_file_commit1', 'w') as fp:
+            fp.write('New World')
+        run('git add -A')
+        wst('commit "Add new file"')
+        changes = run('git log --oneline', return_output=True)
+        expected_commit_message = "Add new file"
+        assert expected_commit_message in changes
 
-    monkeypatch.setattr('workspace.commands.commit.all_branches', Mock(return_value=['master']))
-    monkeypatch.setattr('workspace.commands.commit.checkout_branch', Mock(return_value=['0']))
+        # test commit with branch
+        with open('new_file_commit2', 'w') as fp:
+            fp.write('Hello World')
 
-    # add a new file
-    with open('new_file', 'w') as fp:
-        fp.write('Hello World')
-
-    assert 'new_file' in local_mock_scm.stat_repo(return_output=True)
-
-    wst('commit "Add new file" --branch master')
-
-    # assert 'working tree clean' in stat_repo(return_output=True)
-    assert 'Hello World' == str(open('new_file').read())
-
-    with open('new_file', 'w') as fp:
-        fp.write('New World')
-
-    # verify the log in the git log
-    output = subprocess.Popen('git log --pretty=oneline', stdout=subprocess.PIPE).communicate()[0]
-    log.info("----viks=----", output)
+        wst('commit "New Master file" --branch master')
+        changes = run('git log --oneline', return_output=True)
+        expected_commit_message = "New Master file"
+        assert expected_commit_message in changes
 
 
 def test_test(wst, monkeypatch):

@@ -1,22 +1,6 @@
 import os
-import pytest
 
 from test_stubs import temp_dir
-
-
-def test_checkout_with_alias(wst, mock_run):
-    with temp_dir() as tmpdir:
-        with pytest.raises(SystemExit):
-            wst('checkout foobazbar-no-such-repo')
-
-        wst('checkout mzheng-repos')
-
-        repo_path = '/private' + str(tmpdir)
-
-        assert mock_run.call_count == 4
-        mock_run.assert_called_with(
-            ['git', 'clone', 'git@github.com:maxzheng/workspace-tools.git', repo_path + '/workspace-tools', '--origin', 'origin'],
-            silent=True)
 
 
 def test_checkout_with_http_git(wst):

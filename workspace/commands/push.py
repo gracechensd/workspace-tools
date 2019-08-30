@@ -32,13 +32,7 @@ class Push(AbstractCommand):
         ]
 
     def run(self):
-        # if not self.skip_style_check and self.commander.command('test').supports_style_check():
-        #     click.echo('Checking style')
-        #     self.commander.run('test', env_or_file=['style'], silent=2)
-
         current = current_branch()
-
-        log.info("---viks--- current branch:{}".format(current))
 
         if not self.branch:
             self.branch = current
