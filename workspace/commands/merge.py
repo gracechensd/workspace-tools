@@ -139,6 +139,9 @@ class Merge(AbstractCommand):
                     if self.validation:
                         process_run(self.validation)
 
+                    if self.validation:
+                      process_run(self.validation)
+
                     self.commander.run('push', all_remotes=True, skip_style_check=True)
 
                 last = branch
