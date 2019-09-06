@@ -5,7 +5,7 @@ import pytest
 from bumper.utils import PyPI
 from mock import Mock
 from test_stubs import temp_dir, temp_git_repo, temp_remote_git_repo
-from utils_core.process import run
+from utils.process import run
 from workspace.config import config
 from workspace.scm import stat_repo, all_branches
 

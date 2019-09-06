@@ -7,7 +7,6 @@ import textwrap
 import click
 import git
 from utils.process import run as process_run
-
 from workspace.commands import AbstractCommand
 from workspace.config import config
 from workspace.scm import checkout_branch, current_branch, merge_branch, repo_path
@@ -36,6 +35,8 @@ class Merge(AbstractCommand):
     :param bool quiet: Don't print merging if there are no commits to merge
     :param bool dry_run: Print out what will happen without making changes.
     :param str validation: A command to run after the merge and before a push to validate the change.
+    :param str with_ours: A lit of strings which will alter the commit merge strategy to ours if a commit message has
+    any of the string.
     """
 
     @classmethod
@@ -50,7 +51,7 @@ class Merge(AbstractCommand):
             cls.make_args('--quiet', action='store_true', help=docs['quiet']),
             cls.make_args('-n', '--dry-run', action='store_true', help=docs['dry_run']),
             cls.make_args('--validation', help=docs['validation']),
-            cls.make_args('--whitelist-commit-text-for-ours', help="whitelist strategy")
+            cls.make_args('--with-ours', nargs='*', help=docs['with_ours'])
         ]
 
     def run(self):
@@ -78,7 +79,7 @@ class Merge(AbstractCommand):
                 checkout_branch(current)
 
             all_commits = self.get_unmerged_commits(repo, self.branch, current)
-            self.merge_commits(self.branch, all_commits, self.whitelist_commit_text_for_ours)
+            self.merge_commits(self.branch, all_commits, self.with_ours)
 
         elif self.downstreams:
             if not self.merge_branches:
@@ -90,6 +91,7 @@ class Merge(AbstractCommand):
                 sys.exit(1)
 
             branches = self.merge_branches.split()
+
             if current not in branches:
                 log.error('Current branch %s not found in config merge.branches (%s)', current, self.merge_branches)
                 sys.exit(1)
@@ -132,7 +134,7 @@ class Merge(AbstractCommand):
                                     click.echo('  {}'.format(commit))
                                     raise NotAllowedCommit(commit)
 
-                    self.merge_commits(last, commits, self.whitelist_commit_text_for_ours)
+                    self.merge_commits(last, commits, self.with_ours)
 
                     if self.validation:
                         process_run(self.validation)
@@ -146,7 +148,7 @@ class Merge(AbstractCommand):
                 'Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
             sys.exit(1)
 
-    def merge_commits(self, branch_name, unmerged_commits_string, whitelist_for_ours_strategy):
+    def merge_commits(self, branch_name, unmerged_commits_string, whitelist_for_ours_strategy=None):
         """
         Function to merge the unmerged commits. If  whitelist_for_ours_strategy is empty, it will merge using the heads
         of the source and destination(current) branch.
@@ -171,15 +173,16 @@ class Merge(AbstractCommand):
 
         # For each commit, inspect the message and accordingly run the merge strategy
         for unmerged_commit in unmerged_commits_list:
+            commit_hash = unmerged_commit.split()[0]
             if self.should_use_ours_strategy(unmerged_commit, whitelist_for_ours_strategy):
-                commit_hash = unmerged_commit.split()[0]
-
                 merge_branch(branch_name, commit=commit_hash, strategy="ours")
             else:
                 merge_branch(branch_name, commit=commit_hash, strategy=self.strategy)
 
     def should_use_ours_strategy(self, commit_message, whitelist_for_ours_strategy):
+        log.info("whitelist_for_ours_strategy:{}".format(whitelist_for_ours_strategy))
         for ours_commit_whitelist in whitelist_for_ours_strategy:
+            log.info("Verifying commit:`{}` with ours text:`{}`".format(commit_message, ours_commit_whitelist))
             if ours_commit_whitelist in commit_message:
                 return True
         return False

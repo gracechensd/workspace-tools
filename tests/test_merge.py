@@ -1,5 +1,3 @@
-from os import path
-
 from test_stubs import temp_git_repo
 from utils.process import run
 from workspace.config import config
@@ -57,22 +55,29 @@ def test_merge_branch_with_whitelist(wst, capsys):
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
 
     with temp_git_repo():
+        # Dummy commit
         run('git commit --allow-empty -m dummy-commit')
 
         run('git checkout -b 3.0.x')
         run('touch temp.xml')
         run('git add -A')
-        run('git commit -m skip-new-commit')
+        # Commit 1
+        run('git commit -m  [skip]')
+
+        # commit 2
+        run('touch temp2.xml')
+        run('git add -A')
+        run('git commit -m  commit2')
 
         run('git checkout master')
 
-        wst('merge 3.0.x --whitelist-commit-text-for-ours skip')
+        wst('merge 3.0.x --with-ours \'skip\' \'space separated example\'')
 
         changes = run('git log --oneline', return_output=True)
         # Change should have been in the log entry
-        # but the committed file should not be in the repo.
-        assert 'skip-new-commit' in changes
-        assert path.exists('temp.xml') is False
+        assert 'Merge branch \'3.0.x\'' in changes
+        assert '[skip]' in changes
+        assert 'commit2' in changes
 
     out, _ = capsys.readouterr()
     assert out.split('\n')[0] == 'Merging 3.0.x into master'
