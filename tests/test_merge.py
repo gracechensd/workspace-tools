@@ -71,7 +71,7 @@ def test_merge_branch_with_whitelist(wst, capsys):
 
         run('git checkout master')
 
-        wst('merge 3.0.x --with-ours \'skip\' \'space separated example\'')
+        wst('merge 3.0.x --skip-commits \'skip\' \'space separated example\'')
 
         changes = run('git log --oneline', return_output=True)
         # Change should have been in the log entry

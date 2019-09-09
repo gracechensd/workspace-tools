@@ -35,8 +35,9 @@ class Merge(AbstractCommand):
     :param bool quiet: Don't print merging if there are no commits to merge
     :param bool dry_run: Print out what will happen without making changes.
     :param str validation: A command to run after the merge and before a push to validate the change.
-    :param str with_ours: A lit of strings which will alter the commit merge strategy to ours if a commit message has
-    any of the string.
+    :param str skip_commits: [Optional] Enables per commit based merge. Accepts a list of string or substrings from a
+    commit message used to skip the commits during pint merge. Commits that matches the list of strings are skipped
+    using merge with 'ours' strategy.
     """
 
     @classmethod
@@ -51,7 +52,7 @@ class Merge(AbstractCommand):
             cls.make_args('--quiet', action='store_true', help=docs['quiet']),
             cls.make_args('-n', '--dry-run', action='store_true', help=docs['dry_run']),
             cls.make_args('--validation', help=docs['validation']),
-            cls.make_args('--with-ours', nargs='*', help=docs['with_ours'])
+            cls.make_args('--skip-commits', nargs='*', help=docs['skip_commits'])
         ]
 
     def run(self):
@@ -79,7 +80,7 @@ class Merge(AbstractCommand):
                 checkout_branch(current)
 
             all_commits = self.get_unmerged_commits(repo, self.branch, current)
-            self.merge_commits(self.branch, all_commits, self.with_ours)
+            self.merge_commits(self.branch, all_commits, self.skip_commits)
 
         elif self.downstreams:
             if not self.merge_branches:
@@ -134,7 +135,7 @@ class Merge(AbstractCommand):
                                     click.echo('  {}'.format(commit))
                                     raise NotAllowedCommit(commit)
 
-                    self.merge_commits(last, commits, self.with_ours)
+                    self.merge_commits(last, commits, self.skip_commits)
 
                     if self.validation:
                         process_run(self.validation)
@@ -151,23 +152,25 @@ class Merge(AbstractCommand):
                 'Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
             sys.exit(1)
 
-    def merge_commits(self, branch_name, unmerged_commits_string, whitelist_for_ours_strategy=None):
+    def merge_commits(self, branch_name, unmerged_commits_string, skip_commits=None):
         """
-        Function to merge the unmerged commits. If  whitelist_for_ours_strategy is empty, it will merge using the heads
+        Function to merge the unmerged commits. If  skip_commits is empty, it will merge using the heads
         of the source and destination(current) branch.
 
-        If whitelist_for_ours_strategy is present, then we will inspect the list of commits for a match with the text
-        from whitelist_for_ours_strategy. If match is not found the commit will be merged with whatever strategy passed
+        If skip_commits is present, then we will inspect the list of commits for a match with the text
+        from skip_commits. If match is not found the commit will be merged with whatever strategy passed
         to the class else if a match is found it will merge that specific commit with `ours` strategy.
 
         :param branch_name: Name of the source branch
         :param unmerged_commits_string: unmerged_commits separated with a \n
-        :param whitelist_for_ours_strategy: list of the commit texts to look for.
+        :param skip_commits: [Optional] Enables per commit based merge. Accepts a list of string or substrings from a
+        commit message used to skip the commits during pint merge. Commits that matches the list of strings are skipped
+        using merge with 'ours' strategy.
         """
         if not unmerged_commits_string:
             return
 
-        if whitelist_for_ours_strategy is None:
+        if skip_commits is None:
             merge_branch(branch_name, strategy=self.strategy)
             return
 
@@ -177,14 +180,14 @@ class Merge(AbstractCommand):
         # For each commit, inspect the message and accordingly run the merge strategy
         for unmerged_commit in unmerged_commits_list:
             commit_hash = unmerged_commit.split()[0]
-            if self.should_use_ours_strategy(unmerged_commit, whitelist_for_ours_strategy):
+            if self.should_use_ours_strategy(unmerged_commit, skip_commits):
                 merge_branch(branch_name, commit=commit_hash, strategy="ours")
             else:
                 merge_branch(branch_name, commit=commit_hash, strategy=self.strategy)
 
-    def should_use_ours_strategy(self, commit_message, whitelist_for_ours_strategy):
-        log.info("whitelist_for_ours_strategy:{}".format(whitelist_for_ours_strategy))
-        for ours_commit_whitelist in whitelist_for_ours_strategy:
+    def should_use_ours_strategy(self, commit_message, skip_commits):
+        log.info("skip_commits:{}".format(skip_commits))
+        for ours_commit_whitelist in skip_commits:
             log.info("Verifying commit:`{}` with ours text:`{}`".format(commit_message, ours_commit_whitelist))
             if ours_commit_whitelist in commit_message:
                 return True
