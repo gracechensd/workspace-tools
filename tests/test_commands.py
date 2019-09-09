@@ -1,13 +1,15 @@
+import logging
 import os
-import pytest
 
+import pytest
 from bumper.utils import PyPI
 from mock import Mock
-from utils.process import run
-
-from workspace.config import config
-from workspace.scm import stat_repo, all_branches, commit_logs
 from test_stubs import temp_dir, temp_git_repo, temp_remote_git_repo
+from utils.process import run
+from workspace.config import config
+from workspace.scm import stat_repo, all_branches
+
+log = logging.getLogger(__name__)
 
 
 @pytest.mark.parametrize('command,exception', [('diff', None), ('log', SystemExit), ('status', None)])
@@ -57,6 +59,10 @@ def test_bump(wst, monkeypatch):
             assert '# Comment for localconfig\nlocalconfig==%s\n# Comment for requests\nrequests<0.1\n' % version == requirements
 
 
+def assert_list_equals_without_Order(list1, list2):
+    return len(list1) == len(list2) and sorted(list1)
+
+
 def test_cleanrun(wst):
     config.clean.remove_products_older_than_days = 30
 
@@ -71,57 +77,43 @@ def test_cleanrun(wst):
         run('ls -l')
         wst('clean')
 
-        assert os.listdir() == ['old_repo_dirty', 'repo', 'file']
+        assert_list_equals_without_Order(os.listdir(), ['old_repo_dirty', 'repo', 'file'])
 
     with temp_git_repo():
         run('touch hello.py hello.pyc')
         wst('clean')
 
-        assert os.listdir() == ['.git', 'hello.py']
+        assert_list_equals_without_Order(os.listdir(), ['.git', 'hello.py'])
 
 
 def test_commit(wst):
     with temp_dir():
         with pytest.raises(SystemExit):
             wst('commit')
-
+    config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
+        test_cleanrun
         with pytest.raises(SystemExit):
             wst('commit "no files to commit"')
 
-        with open('new_file', 'w') as fp:
-            fp.write('Hello World')
-        assert 'new_file' in stat_repo(return_output=True)
-
-        wst('commit "Add new file" --branch master')
-
-        assert 'working tree clean' in stat_repo(return_output=True)
-        assert 'Hello World' == open('new_file').read()
-
-        with open('new_file', 'w') as fp:
+    with temp_git_repo():
+        run('git checkout -b 3.0.x')
+        with open('new_file_commit1', 'w') as fp:
             fp.write('New World')
+        run('git add -A')
+        wst('commit "Add new file"')
+        changes = run('git log --oneline', return_output=True)
+        expected_commit_message = "Add new file"
+        assert expected_commit_message in changes
 
-        wst('commit "Update file"')
+        # test commit with branch
+        with open('new_file_commit2', 'w') as fp:
+            fp.write('Hello World')
 
-        assert ['update-file@master', 'master'] == all_branches()
-
-        wst('commit --move release')
-
-        assert ['update-file@master', 'master', 'release'] == all_branches()
-
-        wst('commit --discard')
-
-        assert ['master', 'release'] == all_branches()
-
-        wst('checkout release')
-
-        wst('commit --discard')
-
-        assert ['release', 'master'] == all_branches()
-
-        logs = commit_logs()
-        assert 'new file' in logs
-        assert 1 == len(list(filter(None, logs.split('commit'))))
+        wst('commit "New Master file" --branch master')
+        changes = run('git log --oneline', return_output=True)
+        expected_commit_message = "New Master file"
+        assert expected_commit_message in changes
 
 
 def test_test(wst, monkeypatch):
@@ -191,9 +183,14 @@ def test_push_without_repo(wst):
             wst('push')
 
 
+def mock_commander_function():
+    return 'mocked_call'
+
+
 def test_push(wst, monkeypatch):
     push_repo = Mock()
     remove_branch = Mock()
+
     monkeypatch.setattr('workspace.commands.push.push_repo', push_repo)
     monkeypatch.setattr('workspace.commands.push.remove_branch', remove_branch)
 
