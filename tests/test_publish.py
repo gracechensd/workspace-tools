@@ -43,7 +43,7 @@ Version 0.0.1
 
         repo_path = '/private' + str(cwd)
         assert silent_run_mock.call_args_list == [
-            call('rm -rf dist/*', cwd=repo_path, shell=True),
+            call('rm -rf dist/*', shell=True, cwd=repo_path),
             call(f'{python} setup.py sdist bdist_wheel', cwd=repo_path),
             call('twine upload -r "pypi" -u "user" -p "pass" dist/*', cwd=repo_path, shell=True, silent=2)]
 
