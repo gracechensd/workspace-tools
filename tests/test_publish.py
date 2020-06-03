@@ -41,7 +41,7 @@ Version 0.0.1
 
         python = Path('~/.virtualenvs').expanduser() / Path(cwd).name / 'bin' / 'python'
 
-        repo_path = '/private' + str(cwd)
+        repo_path = str(cwd)
         assert silent_run_mock.call_args_list == [
             call('rm -rf dist/*', shell=True, cwd=repo_path),
             call(f'{python} setup.py sdist bdist_wheel', cwd=repo_path),
