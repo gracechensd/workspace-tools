@@ -6,3 +6,4 @@ remoteconfig>=1
 requests
 six
 utils-core
+bumpversion==0.5.3
