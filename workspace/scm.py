@@ -193,6 +193,10 @@ def merge_branch(branch, commit=None, squash=False, strategy=None):
         cmd.append('--squash')
     if strategy:
         cmd.append('--strategy=' + strategy)
+        if commit is None:
+            current = current_branch()
+            message = f"Merge branch {branch} into {current} (using strategy {strategy})"
+            cmd.append('-m ' + message)
     if commit:
         cmd.append(commit)
     silent_run(cmd)
