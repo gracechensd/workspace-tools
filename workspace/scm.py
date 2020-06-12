@@ -188,17 +188,24 @@ def rename_branch(branch, new_branch):
 
 
 def merge_branch(branch, commit=None, squash=False, strategy=None):
-    cmd = ['git', 'merge', branch]
+    cmd = ['git', 'merge']
+
     if squash:
         cmd.append('--squash')
     if strategy:
         cmd.append('--strategy=' + strategy)
-        if commit is None:
-            current = current_branch()
+        current = current_branch()
+        if commit:
+            message = f"Merge commit {commit} into {current} (using strategy {strategy})"
+        else:
             message = f"Merge branch {branch} into {current} (using strategy {strategy})"
-            cmd.append('-m ' + message)
+        cmd.append('-m ' + message)
+
     if commit:
         cmd.append(commit)
+    else:
+        cmd.append(branch)
+
     silent_run(cmd)
 
 
