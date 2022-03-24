@@ -38,6 +38,7 @@ class Merge(AbstractCommand):
     :param str skip_commits: [Optional] Enables per commit based merge. Accepts a list of string or substrings from a
     commit message used to skip the commits during pint merge. Commits that matches the list of strings are skipped
     using merge with 'ours' strategy.
+    :param str user: [Optional] Name of the user to be appended to merge commit message ("Merge...by <user>")
     """
 
     @classmethod
@@ -52,7 +53,8 @@ class Merge(AbstractCommand):
             cls.make_args('--quiet', action='store_true', help=docs['quiet']),
             cls.make_args('-n', '--dry-run', action='store_true', help=docs['dry_run']),
             cls.make_args('--validation', help=docs['validation']),
-            cls.make_args('--skip-commits', nargs='*', help=docs['skip_commits'])
+            cls.make_args('--skip-commits', nargs='*', help=docs['skip_commits']),
+            cls.make_args('-u', '--user', help=docs['user'])
         ]
 
     def run(self):
@@ -80,7 +82,7 @@ class Merge(AbstractCommand):
                 checkout_branch(current)
 
             all_commits = self.get_unmerged_commits(repo, self.branch, current)
-            self.merge_commits(self.branch, all_commits, self.skip_commits)
+            self.merge_commits(self.branch, all_commits, self.skip_commits, self.user)
 
         elif self.downstreams:
             if not self.merge_branches:
@@ -135,7 +137,7 @@ class Merge(AbstractCommand):
                                     click.echo('  {}'.format(commit))
                                     raise NotAllowedCommit(commit)
 
-                    self.merge_commits(last, commits, self.skip_commits)
+                    self.merge_commits(last, commits, self.skip_commits, self.user)
 
                     if self.validation:
                         process_run(self.validation)
@@ -152,7 +154,7 @@ class Merge(AbstractCommand):
                 'Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
             sys.exit(1)
 
-    def merge_commits(self, branch_name, unmerged_commits_string, skip_commits=None):
+    def merge_commits(self, branch_name, unmerged_commits_string, skip_commits=None, user=None):
         """
         Function to merge the unmerged commits. If  skip_commits is empty, it will merge using the heads
         of the source and destination(current) branch.
@@ -166,12 +168,13 @@ class Merge(AbstractCommand):
         :param skip_commits: [Optional] Enables per commit based merge. Accepts a list of string or substrings from a
         commit message used to skip the commits during pint merge. Commits that matches the list of strings are skipped
         using merge with 'ours' strategy.
+        :param str user: [Optional] Name of the user to be appended to merge commit message ("Merge...by <user>")
         """
         if not unmerged_commits_string:
             return
 
         if skip_commits is None:
-            merge_branch(branch_name, strategy=self.strategy)
+            merge_branch(branch_name, strategy=self.strategy, user=user)
             return
 
         # we should merge from the oldest commit to the newest
@@ -181,9 +184,9 @@ class Merge(AbstractCommand):
         for unmerged_commit in unmerged_commits_list:
             commit_hash = unmerged_commit.split()[0]
             if self.should_use_ours_strategy(unmerged_commit, skip_commits):
-                merge_branch(branch_name, commit=commit_hash, strategy="ours")
+                merge_branch(branch_name, commit=commit_hash, strategy="ours", user=user)
             else:
-                merge_branch(branch_name, commit=commit_hash, strategy=self.strategy)
+                merge_branch(branch_name, commit=commit_hash, strategy=self.strategy, user=user)
 
     def should_use_ours_strategy(self, commit_message, skip_commits):
         log.info("skip_commits:{}".format(skip_commits))

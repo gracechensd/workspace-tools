@@ -99,7 +99,7 @@ def test_merge_branch_skip_last(wst, capsys):
         changes = run('git log --oneline', return_output=True)
         assert f'Merge commit \'{commit1_sha[0:7]}\'' in changes
         assert f'Merge commit \'{commit2_sha[0:7]}\'' in changes
-        assert f'Merge commit {skipped_sha[0:7]} into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped_sha[0:7]}\' into master (using strategy ours)' in changes
         assert 'commit1' in changes
         assert 'commit2' in changes
         assert '[skip]' in changes
@@ -133,7 +133,7 @@ def test_merge_branch_skip_middle(wst, capsys):
 
         changes = run('git log --oneline', return_output=True)
         assert f'Merge commit \'{commit1_sha[0:7]}\'' in changes
-        assert f'Merge commit {skipped_sha[0:7]} into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped_sha[0:7]}\' into master (using strategy ours)' in changes
         assert f'Merge commit \'{commit3_sha[0:7]}\'' in changes
         assert 'commit1' in changes
         assert '[skip]' in changes
@@ -199,7 +199,7 @@ def test_merge_branch_skip_first(wst, capsys):
         wst('merge 3.0.x --skip-commits \'skip\' \'space separated example\'')
 
         changes = run('git log --oneline', return_output=True)
-        assert f'Merge commit {skipped_sha[0:7]} into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped_sha[0:7]}\' into master (using strategy ours)' in changes
         assert f'Merge commit \'{commit2_sha[0:7]}\'' in changes
         assert f'Merge commit \'{commit3_sha[0:7]}\'' in changes
         assert '[skip]' in changes
@@ -233,8 +233,8 @@ def test_merge_branch_skip_first_two(wst, capsys):
 
         changes = run('git log --oneline', return_output=True)
         # Change should have been in the log entry
-        assert f'Merge commit {skipped1_sha[0:7]} into master (using strategy ours)' in changes
-        assert f'Merge commit {skipped2_sha[0:7]} into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped1_sha[0:7]}\' into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped2_sha[0:7]}\' into master (using strategy ours)' in changes
         assert f'Merge commit \'{commit3_sha[0:7]}\'' in changes
         assert '[skip]' in changes
         assert '[skip]' in changes
@@ -266,9 +266,9 @@ def test_merge_branch_skip_all(wst, capsys):
 
         changes = run('git log --oneline', return_output=True)
         # Change should have been in the log entry
-        assert f'Merge commit {skipped1_sha[0:7]} into master (using strategy ours)' in changes
-        assert f'Merge commit {skipped2_sha[0:7]} into master (using strategy ours)' in changes
-        assert f'Merge commit {skipped3_sha[0:7]} into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped1_sha[0:7]}\' into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped2_sha[0:7]}\' into master (using strategy ours)' in changes
+        assert f'Merge commit \'{skipped3_sha[0:7]}\' into master (using strategy ours)' in changes
         assert '[skip]' in changes
         assert '[skip]' in changes
         assert '[skip]' in changes
@@ -280,3 +280,43 @@ def test_merge_branch_skip_all(wst, capsys):
 
     out, _ = capsys.readouterr()
     assert out.split('\n')[0] == 'Merging 3.0.x into master'
+
+
+def test_merge_branch_with_user(wst, capsys):
+    """
+        Test to check if merge_branch works with user option
+    """
+    with temp_git_repo():
+        run('git commit --allow-empty -m init')
+        run('git checkout -b 1.0.x')
+        _ = make_commit("commit 1")
+        run('git checkout master')
+        run('git checkout -b 2.0.x')
+        _ = make_commit("commit 2")
+        wst('merge 1.0.x --user devprod')
+
+        changes = run('git log --oneline', return_output=True)
+        assert "Merge branch '1.0.x' into 2.0.x by devprod" in changes
+
+    out, _ = capsys.readouterr()
+    assert out.split('\n')[0] == 'Merging 1.0.x into 2.0.x'
+
+
+def test_merge_branch_with_user_and_strategy(wst, capsys):
+    """
+        Test to check if merge_branch works with user and strategy options
+    """
+    with temp_git_repo():
+        run('git commit --allow-empty -m init')
+        run('git checkout -b 1.0.x')
+        _ = make_commit("commit 1")
+        run('git checkout master')
+        run('git checkout -b 2.0.x')
+        _ = make_commit("commit 2")
+        wst('merge 1.0.x --user devprod -s ours')
+
+        changes = run('git log --oneline', return_output=True)
+        assert "Merge branch '1.0.x' into 2.0.x by devprod (using strategy ours)" in changes
+
+    out, _ = capsys.readouterr()
+    assert out.split('\n')[0] == 'Merging 1.0.x into 2.0.x'

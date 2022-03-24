@@ -187,19 +187,22 @@ def rename_branch(branch, new_branch):
     silent_run(['git', 'branch', '-m', branch, new_branch])
 
 
-def merge_branch(branch, commit=None, squash=False, strategy=None):
+def merge_branch(branch, commit=None, strategy=None, user=None):
     cmd = ['git', 'merge']
 
-    if squash:
-        cmd.append('--squash')
+    current = current_branch()
+    if commit:
+        message = f"Merge commit '{commit}' into {current}"
+    else:
+        message = f"Merge branch '{branch}' into {current}"
+    if user:
+        message += f" by {user}"
+
     if strategy:
         cmd.append('--strategy=' + strategy)
-        current = current_branch()
-        if commit:
-            message = f"Merge commit {commit} into {current} (using strategy {strategy})"
-        else:
-            message = f"Merge branch {branch} into {current} (using strategy {strategy})"
-        cmd.append('-m ' + message)
+        message += f" (using strategy {strategy})"
+
+    cmd.append(f'-m {message}')
 
     if commit:
         cmd.append(commit)
