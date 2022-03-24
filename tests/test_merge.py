@@ -54,11 +54,11 @@ def test_merge_branch(wst, capsys):
 
 def make_commit(name, skip=False):
     """
-        Function to create a temporary file in current directory, and commit it using name as the commit message
-        unless skip is True (in which case the commit message will have [skip] appended to the front of the commit name.
-        Returns the SHA1 of the commit created.
+    Function to create a temporary file in current directory, and commit it using name as the commit message
+    unless skip is True (in which case the commit message will have [skip] appended to the front of the commit name.
+    Returns the SHA1 of the commit created.
 
-        :param skip: [Optional] Append "[skip]" to the front of the commit message, for use in --skip-commits
+    :param skip: [Optional] Append "[skip]" to the front of the commit message, for use in --skip-commits
     """
     run('touch {}.xml'.format(name))
     run('git add -A')
@@ -72,15 +72,10 @@ def make_commit(name, skip=False):
     return sha
 
 
-# For all test_merge_branch tests below, we cannot assert commits in the log line-by-line because the ordering of the
-# commit messages is not guaranteed because the timestamps on the commits are all the same. Adding sleep statements
-# allows the order to be guaranteed and repeatable but will slow down the tests.
-
-
 def test_merge_branch_skip_last(wst, capsys):
     """
-        Test to check if merge_branch works when three commits are created, with the last commit being skipped.
-        Fourth commit used so that all 3 commits on 3.0.x create merge commits.
+    Test to check if merge_branch works when three commits are created, with the last commit being skipped.
+    Fourth commit used so that all 3 commits on 3.0.x create merge commits.
     """
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
@@ -116,8 +111,8 @@ def test_merge_branch_skip_last(wst, capsys):
 
 def test_merge_branch_skip_middle(wst, capsys):
     """
-        Test to check if merge_branch works when three commits are created, with the middle commit being skipped.
-        Fourth commit used so that all 3 commits on 3.0.x create merge commits.
+    Test to check if merge_branch works when three commits are created, with the middle commit being skipped.
+    Fourth commit used so that all 3 commits on 3.0.x create merge commits.
     """
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
@@ -151,8 +146,8 @@ def test_merge_branch_skip_middle(wst, capsys):
 
 def test_merge_branch_skip_none(wst, capsys):
     """
-        Test to check if merge_branch works when three commits are created, with no commits skipped.
-        Fourth commit used so that all 3 commits on 3.0.x create merge commits.
+    Test to check if merge_branch works when three commits are created, with no commits skipped.
+    Fourth commit used so that all 3 commits on 3.0.x create merge commits.
     """
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
@@ -185,7 +180,7 @@ def test_merge_branch_skip_none(wst, capsys):
 
 def test_merge_branch_skip_first(wst, capsys):
     """
-        Test to check if merge_branch works with three commits created on 3.0.x, with the first commit being skipped.
+    Test to check if merge_branch works with three commits created on 3.0.x, with the first commit being skipped.
     """
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
@@ -217,8 +212,8 @@ def test_merge_branch_skip_first(wst, capsys):
 
 def test_merge_branch_skip_first_two(wst, capsys):
     """
-        Test to check if merge_branch works with three commits created on 3.0.x, with the first two commits
-        being skipped.
+    Test to check if merge_branch works with three commits created on 3.0.x, with the first two commits
+    being skipped.
     """
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
@@ -251,7 +246,7 @@ def test_merge_branch_skip_first_two(wst, capsys):
 
 def test_merge_branch_skip_all(wst, capsys):
     """
-        Test to check if merge_branch works with three commits created on 3.0.x, with the all commits  skipped.
+    Test to check if merge_branch works with three commits created on 3.0.x, with the all commits  skipped.
     """
     config.merge.branches = '1.0.x 2.0.x 3.0.x master'
     with temp_git_repo():
@@ -284,7 +279,7 @@ def test_merge_branch_skip_all(wst, capsys):
 
 def test_merge_branch_with_user(wst, capsys):
     """
-        Test to check if merge_branch works with user option
+    Test to check if merge_branch works with user option
     """
     with temp_git_repo():
         run('git commit --allow-empty -m init')
@@ -304,7 +299,7 @@ def test_merge_branch_with_user(wst, capsys):
 
 def test_merge_branch_with_user_and_strategy(wst, capsys):
     """
-        Test to check if merge_branch works with user and strategy options
+    Test to check if merge_branch works with user and strategy options
     """
     with temp_git_repo():
         run('git commit --allow-empty -m init')
