@@ -315,3 +315,130 @@ def test_merge_branch_with_user_and_strategy(wst, capsys):
 
     out, _ = capsys.readouterr()
     assert out.split('\n')[0] == 'Merging 1.0.x into 2.0.x'
+
+
+def test_merge_skip_commit_on_multiple_branches(wst, capsys):
+    """
+    Test if merging skip-commit propagates through multiple branches
+    """
+    config.merge.branches = '2.0.x 3.0.x master'
+    with temp_git_repo():
+        run('git checkout -b 2.0.x')
+        _ = make_commit("2-1")
+        run('git checkout -b 3.0.x')
+        _ = make_commit("3-1")
+        run('git checkout -b master')
+        _ = make_commit("m-1")
+        run('git checkout 2.0.x')
+        sha_2_2 = make_commit("2-2", skip=True)[:7]
+        run('git checkout 3.0.x')
+        sha_3_2 = make_commit("3-2")[:7]
+        run('git checkout 2.0.x')
+        sha_2_3 = make_commit("2-3")[:7]
+        run('git checkout 3.0.x')
+        wst('merge 2.0.x --skip-commits \'skip\'')
+
+        # Only expect merge commits for commits 2-2 & 2-3, since merge of 2-1 will be ff
+        changes = run('git log --oneline', return_output=True)
+        assert f"Merge commit '{sha_2_3}' into 3.0.x\n" in changes
+        assert f"Merge commit '{sha_2_2}' into 3.0.x (using strategy ours)\n" in changes
+
+        temp_git_dir_path = os.getcwd()
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-1.xml"))
+        assert not os.path.isfile(os.path.join(temp_git_dir_path, "2-2.xml"))  # Skipped / strategy=ours
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-3.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-1.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-2.xml"))
+
+        run('git checkout master')
+        wst('merge 3.0.x --skip-commits \'skip\'')
+
+        changes = run('git log --oneline', return_output=True)
+        assert f"Merge commit '{sha_2_3}' into master\n" in changes
+        assert f"Merge commit '{sha_2_2}' into master (using strategy ours)\n" in changes
+        assert f"Merge commit '{sha_3_2}' into master\n" in changes
+
+        # There merge commits should have been skipped
+        assert f"Merge commit '{sha_2_3}' into 3.0.x\n" not in changes
+        assert f"Merge commit '{sha_2_2}' into 3.0.x (using strategy ours)\n" not in changes
+
+        temp_git_dir_path = os.getcwd()
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-1.xml"))
+        assert not os.path.isfile(os.path.join(temp_git_dir_path, "2-2.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-3.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-1.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-2.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "m-1.xml"))
+
+    out, _ = capsys.readouterr()
+    assert out == (
+        'Merging 2.0.x into 3.0.x\n'
+        'The following commit(s) would be merged:\n'
+        f'  {sha_2_3} 2-3\n'
+        f'  {sha_2_2} [skip] 2-2\n'
+        'Merging 3.0.x into master\n'
+        'The following commit(s) would be merged:\n'
+        f'  {sha_2_3} 2-3\n'
+        f'  {sha_3_2} 3-2\n'
+        f'  {sha_2_2} [skip] 2-2\n'
+    )
+
+
+def test_merge_skip_commit_downstream(wst, capsys):
+    """
+    Test if merging skip-commit propagates through multiple branches using downstream
+    """
+    config.merge.branches = '2.0.x 3.0.x master'
+    with temp_git_repo():
+        run('git checkout -b 2.0.x')
+        _ = make_commit("2-1")
+        run('git checkout -b 3.0.x')
+        _ = make_commit("3-1")
+        run('git checkout -b master')
+        _ = make_commit("m-1")
+        run('git checkout 2.0.x')
+        sha_2_2 = make_commit("2-2", skip=True)[:7]
+        run('git checkout 3.0.x')
+        sha_3_2 = make_commit("3-2")[:7]
+        run('git checkout 2.0.x')
+        sha_2_3 = make_commit("2-3")[:7]
+        wst('merge --downstream --skip-commits \'skip\'')
+
+        # Only expect merge commits for commits 2-2 & 2-3, since merge of 2-1 will be ff
+        run('git checkout 3.0.x')
+        changes = run('git log --oneline', return_output=True)
+        assert f"Merge commit '{sha_2_3}' into 3.0.x\n" in changes
+        assert f"Merge commit '{sha_2_2}' into 3.0.x (using strategy ours)\n" in changes
+
+        temp_git_dir_path = os.getcwd()
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-1.xml"))
+        assert not os.path.isfile(os.path.join(temp_git_dir_path, "2-2.xml"))  # Skipped / strategy=ours
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-3.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-1.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-2.xml"))
+
+        run('git checkout master')
+        changes = run('git log --oneline', return_output=True)
+        assert f"Merge commit '{sha_2_3}' into master\n" in changes
+        assert f"Merge commit '{sha_2_2}' into master (using strategy ours)\n" in changes
+        assert f"Merge commit '{sha_3_2}' into master\n" in changes
+
+        # There merge commits should have been skipped
+        assert f"Merge commit '{sha_2_3}' into 3.0.x\n" not in changes
+        assert f"Merge commit '{sha_2_2}' into 3.0.x (using strategy ours)\n" not in changes
+
+        temp_git_dir_path = os.getcwd()
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-1.xml"))
+        assert not os.path.isfile(os.path.join(temp_git_dir_path, "2-2.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "2-3.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-1.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "3-2.xml"))
+        assert os.path.isfile(os.path.join(temp_git_dir_path, "m-1.xml"))
+
+    out, _ = capsys.readouterr()
+    assert out == (
+        'Merging 2.0.x into 3.0.x\n'
+        'Pushing 3.0.x\n'
+        'Merging 3.0.x into master\n'
+        'Pushing master\n'
+    )

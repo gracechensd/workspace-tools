@@ -127,9 +127,10 @@ class Merge(AbstractCommand):
                 else:
                     if self.allow_commits:
                         if commits:
-                            for commit in commits.split('\n'):
+                            for commit in commits:
                                 # Not performant / ok as # of allow_commits should be low
                                 allowed_commit = (' Merge branch ' in commit
+                                                  or ' Merge commit ' in commit
                                                   or ' Merge pull request ' in commit
                                                   or any(allow_commit in commit for allow_commit in self.allow_commits))
                                 if not allowed_commit:
@@ -154,7 +155,7 @@ class Merge(AbstractCommand):
                 'Please specify either a branch to merge from or --downstreams to merge to all downstream branches')
             sys.exit(1)
 
-    def merge_commits(self, branch_name, unmerged_commits_string, skip_commits=None, user=None):
+    def merge_commits(self, branch_name, unmerged_commits, skip_commits=None, user=None):
         """
         Function to merge the unmerged commits. If  skip_commits is empty, it will merge using the heads
         of the source and destination(current) branch.
@@ -164,13 +165,13 @@ class Merge(AbstractCommand):
         to the class else if a match is found it will merge that specific commit with `ours` strategy.
 
         :param branch_name: Name of the source branch
-        :param unmerged_commits_string: unmerged_commits separated with a \n
+        :param unmerged_commits: List of unmerged_commits
         :param skip_commits: [Optional] Enables per commit based merge. Accepts a list of string or substrings from a
         commit message used to skip the commits during pint merge. Commits that matches the list of strings are skipped
         using merge with 'ours' strategy.
         :param str user: [Optional] Name of the user to be appended to merge commit message ("Merge...by <user>")
         """
-        if not unmerged_commits_string:
+        if not unmerged_commits:
             return
 
         if skip_commits is None:
@@ -178,7 +179,7 @@ class Merge(AbstractCommand):
             return
 
         # we should merge from the oldest commit to the newest
-        unmerged_commits_list = reversed(unmerged_commits_string.split('\n'))
+        unmerged_commits_list = reversed(unmerged_commits)
 
         # For each commit, inspect the message and accordingly run the merge strategy
         for unmerged_commit in unmerged_commits_list:
@@ -201,10 +202,16 @@ class Merge(AbstractCommand):
         commits = self._unmerged_commits(repo, source_branch, target_branch)
         if commits:
             click.echo('The following commit(s) would be merged:')
-            click.echo(textwrap.indent(commits, '  '))
+            click.echo(textwrap.indent('\n'.join(commits), '  '))
         else:
             click.echo('Already up-to-date.')
         return commits
 
     def _unmerged_commits(self, repo, from_branch, target_branch):
-        return repo.git.log('{}..{}'.format(target_branch, from_branch), oneline=True)
+        unmerged_commits = []
+        commits = repo.git.log('{}..{}'.format(target_branch, from_branch), oneline=True)
+        for commit in commits.split('\n'):
+            # Skip on 'Merge' commits to prevent merge of merge commits
+            if not ('Merge branch' in commit or 'Merge commit' in commit or 'Merge pull request' in commit):
+                unmerged_commits.append(commit)
+        return unmerged_commits
